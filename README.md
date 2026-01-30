@@ -1,64 +1,45 @@
-# HaloSafe: ISO 15066 Admittance Control & Safety Monitor
+# HaloSafe: ISO 15066 Safety Controller
 
-**HaloSafe** is a safety-critical control architecture for collaborative robotics (cobots). It implements a real-time **Admittance Control Loop** coupled with an **ISO/TS 15066 Speed & Separation Monitor**, allowing a robot to dynamically scale its velocity and compliance based on human proximity and external contact forces.
+**HaloSafe** is a real-time safety monitoring layer designed for collaborative robots (cobots). It implements **Speed and Separation Monitoring (SSM)** according to ISO/TS 15066 standards, ensuring the robot dynamically reduces speed or stops completely when a human operator enters its workspace.
 
-## 📐 Control Architecture
+## 🛡️ Core Logic
+HaloSafe operates as a "Man-in-the-Middle" between the motion planner and the robot hardware.
 
-The system executes a 240Hz control loop comprising two primary layers:
+1.  **Admittance Control (The Physics):**
+    * Simulates a **Mass-Spring-Damper** system ($M\ddot{x} + D\dot{x} + Kx = F_{ext}$).
+    * This gives the robot "virtual weight," making it compliant and safe for physical interaction rather than stiff and dangerous.
 
-### 1. The Admittance Layer (Force Control)
-Unlike standard position control, HaloSafe implements an impedance-based control law that renders the robot compliant to external disturbances. The system solves the mass-spring-damper differential equation in real-time:
+2.  **Safety Monitor (The Watchdog):**
+    * Continuously calculates the Euclidean distance between the Robot TCP (Tool Center Point) and the Human operator.
+    * **Green Zone (> 2.0m):** 100% Velocity.
+    * **Yellow Zone (0.5m - 2.0m):** Linear velocity scaling.
+    * **Red Zone (< 0.5m):** Protective Stop (0% Velocity).
 
-$$M_d \ddot{x}_d + D_d \dot{x}_d + K_d (x_d - x_{ref}) = F_{ext}$$
-
-Where:
-* **$M_d$ (Virtual Mass):** Inertia scaling (kg). Higher values increase resistance to acceleration.
-* **$D_d$ (Virtual Damping):** Viscous friction (Ns/m). Critical for preventing oscillation during contact.
-* **$F_{ext}$:** External force vector applied by the operator.
-
-### 2. The Safety Layer (Speed & Separation Monitoring)
-A supervisory safety layer overrides the admittance output based on the Euclidean distance between the robot's Tool Center Point (TCP) and the operator.
-
-* **Zone 1 (Free Space):** $d > 2.0m$ → **100% Velocity**
-* **Zone 2 (Dynamic Scaling):** $0.5m < d < 2.0m$ → **Linear Interpolation**
-    * Formula: $V_{scale} = \frac{d - d_{min}}{d_{max} - d_{min}}$
-* **Zone 3 (Protective Stop):** $d < 0.5m$ → **0% Velocity (Category 2 Stop)**
-
-## 📊 Live Telemetry Dashboard
-The system visualizes the safety state in the terminal for real-time debugging:
-
-```text
-[HUMAN DIST: 0.42m]  [░░░░░░░░░░░░░░░░░░░░░░░░░]   0% MAX SPD  | 🔴 STOP | ROBOT VEL: 0.000 m/s
-[HUMAN DIST: 1.92m]  [████████████████░░░░░░░░░]  70% MAX SPD  | 🟡 WARN | ROBOT VEL: 1.062 m/s
-[HUMAN DIST: 2.62m]  [█████████████████████████] 100% MAX SPD  | 🟢 SAFE | ROBOT VEL: 1.500 m/s
-
-```
-
-## 🛠️ Installation & Usage
-
-### Dependencies
-
-The project uses pure `numpy` for vector math and Euler integration to maintain transparency and portability.
-
-```bash
-pip install numpy
-
-```
-
-### Execution
-
-Run the controller to initialize the physics loop and safety monitor:
+## 🚀 Usage
+You can run the visualization dashboard to see the safety logic in action:
 
 ```bash
 python safety_controller.py
 
 ```
 
-## 📂 Project Structure
+**Output:**
+The script launches a live ASCII dashboard showing:
 
-* `safety_controller.py`: Contains the `AdmittanceController` class (physics solver) and `SafetyMonitor` class (ISO logic).
-* **Physics Engine:** Custom differential equation solver using Euler integration.
+* **Human Distance:** Simulated proximity of the operator.
+* **Velocity Scale:** The calculated safety factor (0% - 100%).
+* **Robot Velocity:** The final safe output command sent to the motors.
 
----
+## 🛠️ Configuration
+
+* **Mass (M):** 5.0 kg (Virtual inertia)
+* **Damping (D):** 10.0 Ns/m (Resistance to motion)
+* **Protective Stop Distance:** 0.5m
+
+## 📦 Dependencies
+
+* Python 3.10+
+* NumPy
 
 **Author:** Charles Austin
+*Focus: Robotics Safety Systems, Human-Robot Interaction (HRI)*
