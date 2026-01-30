@@ -62,7 +62,3 @@ python safety_controller.py
 ---
 
 **Author:** Charles Austin
-
-```
-
-```
